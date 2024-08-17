@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <string>
 
 #include <stdint.h>
 #include <time.h>
@@ -11,7 +12,7 @@ constexpr uint8_t PROGRAM_CHANGE = 0xC0;
 constexpr uint8_t NOTE_ON = 0x90;
 constexpr uint8_t NOTE_OFF = 0x80;
 
-constexpr uint8_t NYLON_GUITAR = 24;
+// constexpr uint8_t NYLON_GUITAR = 98;
 
 
 struct MidiEvent
@@ -85,8 +86,7 @@ int main(int argc, char * argv[])
     // tempo
     add_event({ 0x00 }, 0xFF, { 0x51, 0x03, 0x05, 0xB8, 0xD8 });
 
-    // set to guitar
-    add_event({ 0x00 }, PROGRAM_CHANGE, { NYLON_GUITAR });
+    
 
     // add a bunch of random notes
     for (unsigned int i = 0; i < 30000; i++)
@@ -98,6 +98,9 @@ int main(int argc, char * argv[])
         uint8_t velocity2 = 32 + rand() % 63;
 
         uint8_t interval = 2;
+
+        // set to instrument
+        add_event({ 0x00 }, PROGRAM_CHANGE, { (uint8_t)(rand() % 128)});
 
         add_event({ 0x00 }, NOTE_ON, { note, velocity });
         add_event({ 0x00 }, NOTE_ON, { note2, velocity2 });
