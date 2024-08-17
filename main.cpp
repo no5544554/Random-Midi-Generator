@@ -1,7 +1,6 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <initializer_list>
 
 #include <stdint.h>
 #include <time.h>
