@@ -1,10 +1,17 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <string>
+#include <initializer_list>
 
 #include <stdint.h>
 #include <time.h>
+
+constexpr uint8_t PROGRAM_CHANGE = 0xC0;
+constexpr uint8_t NOTE_ON = 0x90;
+constexpr uint8_t NOTE_OFF = 0x80;
+
+constexpr uint8_t NYLON_GUITAR = 24;
+
 
 struct MidiEvent
 {
@@ -22,25 +29,24 @@ struct MidiEvent
 
 
 std::vector<MidiEvent> events;
+unsigned int track_chunk_length = 0;
 
 
-
+void add_event(std::vector<uint8_t> delta_time, uint8_t event_type, std::vector<uint8_t> event_data);
 
 
 int main(int argc, char * argv[])
 {
-    std::string outfile_path = "";
-
     srand(time(nullptr));
-
 
     std::ofstream outfile;
     outfile.open("output.mid", std::ios::binary | std::ios::out);
 
+    // variable for storing what byte to write
+    uint8_t num = 0;
+
     // write header and header length
     outfile.write("MThd", 4);
-
-    uint8_t num = 0;
     outfile.write((char*)&num, 1);
     outfile.write((char*)&num, 1);
     outfile.write((char*)&num, 1);
@@ -64,108 +70,42 @@ int main(int argc, char * argv[])
     outfile.write((char*)&num, 1);
 
     // write timing
-    uint8_t tempo1 = 0x00;
-    uint8_t tempo2 = 0x60;
-
-    outfile.write((char*)&tempo1, 1);
-    outfile.write((char*)&tempo2, 1);
+    uint8_t timing_byte1 = 0x00;
+    uint8_t timing_byte2 = 0x60;
+    outfile.write((char*)&timing_byte1, 1);
+    outfile.write((char*)&timing_byte2, 1);
 
     // write track
     outfile.write("MTrk", 4);
-    unsigned int track_chunk_length = 0;
-
-    MidiEvent e;
 
     // time signature
-    e.delta_time.push_back(0x00);
-    e.event_type = 0xFF;
-    e.event_data.push_back(0x58);
-    e.event_data.push_back(0x04);
-    e.event_data.push_back(0x04);
-    e.event_data.push_back(0x02);
-    e.event_data.push_back(0x18);
-    e.event_data.push_back(0x08);
-    events.push_back(e);
-    e.reset();
-
-    track_chunk_length += 8;
+    add_event({ 0x00 }, 0xFF, { 0x58, 0x04, 0x04, 0x02, 0x18, 0x08 });
 
     // tempo
-    e.delta_time.push_back(0x00);
-    e.event_type = 0xFF;
-    e.event_data.push_back(0x51);
-    e.event_data.push_back(0x03);
-    e.event_data.push_back(0x05);
-    e.event_data.push_back(0xB8);
-    e.event_data.push_back(0xD8);
-    events.push_back(e);
-    e.reset();
-
-    track_chunk_length += 7;
+    add_event({ 0x00 }, 0xFF, { 0x51, 0x03, 0x05, 0xB8, 0xD8 });
 
     // set to guitar
-    e.delta_time.push_back(0x00);
-    e.event_type = 0xC0;
-    e.event_data.push_back(24);
-    events.push_back(e);
-    e.reset();
+    add_event({ 0x00 }, PROGRAM_CHANGE, { NYLON_GUITAR });
 
-    track_chunk_length += 3;
-
+    // add a bunch of random notes
     for (unsigned int i = 0; i < 30000; i++)
     {
-        e.delta_time.push_back(0);
+        uint8_t note = 32 + rand() % 64;
+        uint8_t velocity = 32 + rand() % 63;
+
+        uint8_t note2 = 32 + rand() % 64;
+        uint8_t velocity2 = 32 + rand() % 63;
+
+        add_event({ 0x00 }, NOTE_ON, { note, velocity });
+        add_event({ 0x00 }, NOTE_ON, { note2, velocity2 });
 
 
-        e.event_type = 0x90;
-        char note = 32 + rand() % 64;
-        char velocity = 32 + rand() % 63;
-        e.event_data.push_back(note);
-        e.event_data.push_back(velocity);
-        events.push_back(e);
-        e.reset();
-
-        track_chunk_length += 4;
-        e.delta_time.push_back(0);
-        e.event_type = 0x90;
-        char note2 = 32 + rand() % 64;
-        char velocity2 = 32 + rand() % 63;
-        e.event_data.push_back(note2);
-        e.event_data.push_back(velocity2);
-        events.push_back(e);
-        e.reset();
-
-        track_chunk_length += 4;
-
-        // note off
-        e.delta_time.push_back((char)(48));
-        e.event_type = 0x80;
-        e.event_data.push_back(note);
-        e.event_data.push_back(64);
-        events.push_back(e);
-        e.reset();
-
-        track_chunk_length += 4;
-
-        e.delta_time.push_back(0);
-        e.event_type = 0x80;
-        e.event_data.push_back(note2);
-        e.event_data.push_back(64);
-        events.push_back(e);
-        e.reset();
-
-        track_chunk_length += 4;
+        add_event({ 48 }, NOTE_OFF, { note, 64 });
+        add_event({ 0x00 }, NOTE_OFF, { note2, 64 });
     }
 
-
-    e.delta_time.push_back(0);
-    e.event_type = 0xFF;
-    e.event_data.push_back(0x2F);
-    e.event_data.push_back(0x00);
-    events.push_back(e);
-    e.reset();
-
-    track_chunk_length += 4;
+    // track end event
+    add_event({ 0 }, 0xFF, { 0x2F, 0x00 });
 
     unsigned int big_endian_length = 0;
     big_endian_length = ((track_chunk_length >> 24) & 0x000000FF |
@@ -194,4 +134,17 @@ int main(int argc, char * argv[])
     outfile.close();
 
     return 0;
+}
+
+
+void add_event(std::vector<uint8_t> delta_time, uint8_t event_type, std::vector<uint8_t> event_data)
+{
+    MidiEvent e;
+    e.delta_time = delta_time;
+    e.event_type = event_type;
+    e.event_data = event_data;
+
+    track_chunk_length += e.delta_time.size() + 1 + e.event_data.size();
+
+    events.push_back(e);
 }
