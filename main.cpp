@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <time.h>
 
+constexpr uint8_t QUARTER_NOTE = 0x60;
+
 constexpr uint8_t PROGRAM_CHANGE = 0xC0;
 constexpr uint8_t NOTE_ON = 0x90;
 constexpr uint8_t NOTE_OFF = 0x80;
@@ -70,7 +72,7 @@ int main(int argc, char * argv[])
 
     // write timing
     uint8_t timing_byte1 = 0x00;
-    uint8_t timing_byte2 = 0x60;
+    uint8_t timing_byte2 = QUARTER_NOTE;
     outfile.write((char*)&timing_byte1, 1);
     outfile.write((char*)&timing_byte2, 1);
 
@@ -99,7 +101,7 @@ int main(int argc, char * argv[])
         add_event({ 0x00 }, NOTE_ON, { note2, velocity2 });
 
 
-        add_event({ 48 }, NOTE_OFF, { note, 64 });
+        add_event({ QUARTER_NOTE / 2 }, NOTE_OFF, { note, 64 });
         add_event({ 0x00 }, NOTE_OFF, { note2, 64 });
     }
 
