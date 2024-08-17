@@ -97,11 +97,20 @@ int main(int argc, char * argv[])
         uint8_t note2 = 32 + rand() % 64;
         uint8_t velocity2 = 32 + rand() % 63;
 
+        uint8_t interval = 2;
+
         add_event({ 0x00 }, NOTE_ON, { note, velocity });
         add_event({ 0x00 }, NOTE_ON, { note2, velocity2 });
 
+        int choose = rand() % 3;
+        switch (choose)
+        {
+            case 0: interval = 2; break;
+            case 1: interval = 4; break;
+            case 2: interval = 1; break;
+        }
 
-        add_event({ QUARTER_NOTE / 2 }, NOTE_OFF, { note, 64 });
+        add_event({ (uint8_t)(QUARTER_NOTE / interval) }, NOTE_OFF, { note, 64 });
         add_event({ 0x00 }, NOTE_OFF, { note2, 64 });
     }
 
