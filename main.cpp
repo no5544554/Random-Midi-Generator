@@ -18,7 +18,7 @@ constexpr uint8_t NOTE_OFF = 0x80;
 struct MidiEvent
 {
     std::vector<uint8_t> delta_time;
-    uint8_t event_type;
+    uint8_t event_type = 0;
     std::vector<uint8_t> event_data;
 
     void reset(void)
@@ -39,43 +39,21 @@ void add_event(std::vector<uint8_t> delta_time, uint8_t event_type, std::vector<
 
 int main(int argc, char * argv[])
 {
-    srand(time(nullptr));
+    srand((unsigned int)time(nullptr));
 
     std::ofstream outfile;
-    outfile.open("output.mid", std::ios::binary | std::ios::out);
+    outfile.open("outfile.mid", std::ios::binary | std::ios::out);
 
-    // variable for storing what byte to write
-    uint8_t num = 0;
+    // bytes to write
+    char header_bytes[] = { 
+        'M', 'T', 'h', 'd',         // header label
+        0, 0, 0, 6,                 // header length
+        0, 0,                       // midi format
+        0, 1,                       // num tracks
+        0, QUARTER_NOTE             // timing
+    };
 
-    // write header and header length
-    outfile.write("MThd", 4);
-    outfile.write((char*)&num, 1);
-    outfile.write((char*)&num, 1);
-    outfile.write((char*)&num, 1);
-
-    num = 6;
-    outfile.write((char*)&num, 1);
-
-
-    // write format
-    num = 0;
-    outfile.write((char*)&num, 1);
-
-    num = 0;
-    outfile.write((char*)&num, 1);
-
-    // write num tracks
-    num = 0;
-    outfile.write((char*)&num, 1);
-
-    num = 1;
-    outfile.write((char*)&num, 1);
-
-    // write timing
-    uint8_t timing_byte1 = 0x00;
-    uint8_t timing_byte2 = QUARTER_NOTE;
-    outfile.write((char*)&timing_byte1, 1);
-    outfile.write((char*)&timing_byte2, 1);
+    outfile.write(header_bytes, sizeof(header_bytes));
 
     // write track
     outfile.write("MTrk", 4);
@@ -157,7 +135,7 @@ void add_event(std::vector<uint8_t> delta_time, uint8_t event_type, std::vector<
     e.event_type = event_type;
     e.event_data = event_data;
 
-    track_chunk_length += e.delta_time.size() + 1 + e.event_data.size();
+    track_chunk_length += (unsigned int)e.delta_time.size() + 1 + (unsigned int)e.event_data.size();
 
     events.push_back(e);
 }
